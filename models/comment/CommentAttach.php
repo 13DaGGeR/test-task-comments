@@ -17,6 +17,11 @@ use yii\web\UploadedFile;
  */
 class CommentAttach extends \yii\db\ActiveRecord implements iCommentAttach {
 
+	const DIR = '@app/web/upload/';
+	const URL = '/upload/';
+	
+	private $dataObj = null;
+
 	/**
 	 * @inheritdoc
 	 */
@@ -59,13 +64,17 @@ class CommentAttach extends \yii\db\ActiveRecord implements iCommentAttach {
 	 */
 	public static function upload(UploadedFile $file, int $comment_id): CommentAttach {
 		$fn = "$file->baseName-".round(microtime(1), 4).".$file->extension";
-		if($file->saveAs(Yii::getAlias('@app')."/web/upload/$fn")){
+		if($file->saveAs(Yii::getAlias(static::DIR).$fn)){
 			$model = new static([
 				'comment_id' => $comment_id,
 			]);
 			$model->parseMeta($file, $fn);
-			$model->save();
-			return $model;
+			if($model->validate() && $model->save()) {
+				return $model;
+			} else {
+				var_dump($model->validate(), $model->getFirstErrors());die;
+				throw new Exception('Upload error', 500);
+			}
 		} else {
 			throw new Exception('Upload error', 500);
 		}
@@ -82,23 +91,30 @@ class CommentAttach extends \yii\db\ActiveRecord implements iCommentAttach {
 
 	public function beforeSave($insert) {
 		if(!is_string($this->data)) {
+			$this->dataObj = $this->data;
 			$this->data = json_encode($this->data);
 		}
-		parent::beforeSave($insert);
+		return parent::beforeSave($insert);
 	}
 	
 	public function beforeValidate() {
 		if(!is_string($this->data)) {
+			$this->dataObj = $this->data;
 			$this->data = json_encode($this->data);
 		}
-		parent::beforeValidate();
+		return parent::beforeValidate();
+	}
+	
+	public function afterFind() {
+		parent::afterFind();
+		$this->dataObj = json_decode($this->data);
 	}
 	
 	public function getAbsFn() {
-		return Yii::getAlias('@basedir').'/';
+		return Yii::getAlias(static::DIR).$this->dataObj->fn;
 	}
 
 	public function getUrl() {
-		return '/';
+		return static::URL.$this->dataObj->fn;
 	}
 }

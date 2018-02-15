@@ -41,7 +41,7 @@ class CommentController extends Controller {
 			if($model->validate()) {
 				$model->save();
 				foreach($model->files as $file) {
-					$f = CommentAttach::upload($file, $model->id);
+					CommentAttach::upload($file, $model->id);
 				}
 			}
 		}

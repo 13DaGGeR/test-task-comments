@@ -73,7 +73,7 @@ class Comment extends \yii\db\ActiveRecord {
 	 * @return \yii\db\ActiveQuery
 	 */
 	public function getComments() {
-		return $this->hasMany(Comment::className(), ['parent' => 'id']);
+		return $this->hasMany(Comment::className(), ['parent' => 'id'])->with('comments');
 	}
 
 	/**
